@@ -4,34 +4,32 @@ use std::{
 };
 
 use header::render_header;
+use output::render_output;
 use ratatui::{
     crossterm::{
         event::{self, KeyCode, KeyEventKind},
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
         ExecutableCommand,
     },
-    layout::{Alignment, Constraint, Flex, Layout, Position, Rect},
+    layout::{Alignment, Constraint, Layout, Rect},
     prelude::CrosstermBackend,
-    style::Stylize,
-    widgets::{Block, BorderType, Borders, Paragraph},
+    style::{Color, Style, Stylize},
+    widgets::{Block, BorderType, Borders},
     Terminal,
 };
+use stats::render_stats;
 
 mod header;
+mod output;
+mod stats;
 
-// Make 3 panels, a header, a sub header, and a main panel that takes up the rest of the screen
-// The header should be five lines, the sub header should be 4 line, and the main panel
-// should be the rest of the screen
-// The header should be red, the sub header should be blue, and the main panel should be green
-// The header should say "Header", the sub header should say "Sub Header", and the main panel
-// should say "Main Panel"
 fn make_panels_rect(area: Rect) -> Rc<[Rect]> {
     let chunks = Layout::default()
         .direction(ratatui::layout::Direction::Vertical)
         .constraints(
             [
                 Constraint::Length(5),
-                Constraint::Length(4),
+                Constraint::Length(8),
                 Constraint::Min(0),
             ]
             .as_ref(),
@@ -58,6 +56,8 @@ pub fn init() -> Result<()> {
                 todo!()
             };
             render_header(frame, header_area);
+            render_stats(frame, stats_area);
+            render_output(frame, output_area);
         })?;
 
         // Interaction to modify state -> Move to eventual ux module

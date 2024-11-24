@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crossbeam::channel::{bounded, Receiver, RecvError, Sender};
+use crossbeam::channel::{bounded, Receiver, RecvError};
 use notify::{Event, ReadDirectoryChangesWatcher, Watcher};
 
 pub struct ModificationAwaiter {
