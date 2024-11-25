@@ -12,8 +12,8 @@ pub fn render_stats(f: &mut Frame, area: &Rect) {
         .border_type(ratatui::widgets::BorderType::Rounded)
         .title(format!("Stats {}", 5))
         .title_alignment(Alignment::Center)
-        .title_style(Style::default().fg(Color::Yellow).bold())
-        .bg(Color::Rgb(30, 34, 42));
+        .bg(Color::Rgb(30, 34, 42))
+        .title_style(Style::default().fg(Color::Yellow).bold());
     f.render_widget(header_block, *area);
 
     let inner_area = area.inner(Margin {

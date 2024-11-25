@@ -19,6 +19,8 @@ use ratatui::{
 };
 use stats::render_stats;
 
+use crate::process_manager::ProcessManager;
+
 mod header;
 mod output;
 mod stats;
@@ -38,7 +40,7 @@ fn make_panels_rect(area: Rect) -> Rc<[Rect]> {
     chunks
 }
 
-pub fn init() -> Result<()> {
+pub fn init(pm: &mut ProcessManager) -> Result<()> {
     stdout().execute(EnterAlternateScreen)?;
     enable_raw_mode()?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
@@ -57,7 +59,7 @@ pub fn init() -> Result<()> {
             };
             render_header(frame, header_area);
             render_stats(frame, stats_area);
-            render_output(frame, output_area);
+            render_output(frame, output_area, pm);
         })?;
 
         // Interaction to modify state -> Move to eventual ux module

@@ -22,8 +22,8 @@ pub fn render_header(f: &mut Frame, area: &Rect) {
         .border_type(ratatui::widgets::BorderType::Rounded)
         .title(format!("Await-Modify-Do v{}", APP_VERSION))
         .title_style(Style::default().fg(Color::Yellow).bold())
-        .title_alignment(Alignment::Center)
-        .bg(Color::Rgb(30, 34, 42));
+        .bg(Color::Rgb(30, 34, 42))
+        .title_alignment(Alignment::Center);
     f.render_widget(header_block, *area);
 
     let inner_area = area.inner(Margin {
