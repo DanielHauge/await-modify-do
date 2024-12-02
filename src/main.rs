@@ -1,35 +1,50 @@
-use std::{path::Path, thread};
+use std::{process::exit, thread};
 mod await_modify;
 mod process_manager;
 mod ui;
 
 use await_modify::ModificationAwaiter;
-use process_manager::ProcessManager;
+use process_manager::ProcessExecution;
 
 fn main() {
     let p = std::env::current_dir().unwrap();
-    let mut pm = ProcessManager::new();
+    let awaiter = ModificationAwaiter::new(p.as_path());
     let command = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
-    pm.start_p(command);
-    // pm.start_p("ls".to_string());
+    let (tx, rx) = crossbeam::channel::unbounded();
+    match ProcessExecution::start_new(command.clone()) {
+        Ok(process_exe) => {
+            tx.send(process_exe).unwrap();
+        }
+        Err(e) => {
+            eprintln!("Was not able to start with command: {:?}", command);
+            eprintln!("{:?}", e);
+            exit(1);
+        }
+    }
 
-    // get current directory full path
-    // eprintln!("Watching {:?}", &p);
-    // let awaiter = ModificationAwaiter::new(&p);
+    thread::spawn(|| {
+        ui::init(rx).unwrap();
+        exit(0);
+    });
 
-    ui::init(&mut pm).unwrap();
-    // thread::spawn(|| {
-    // });
-
-    // loop {
-    //     let event = awaiter.await_modify();
-    //     match event {
-    //         Ok(event) => {
-    //             println!("{:?}", event);
-    //         }
-    //         Err(e) => {
-    //             println!("Error: {:?}", e);
-    //         }
-    //     }
-    // }
+    loop {
+        let event = awaiter.await_modify();
+        match event {
+            Ok(_) => {
+                match ProcessExecution::start_new(command.clone()) {
+                    Ok(process_exe) => {
+                        tx.send(process_exe).unwrap();
+                    }
+                    Err(e) => {
+                        eprintln!("Error: {:?}", e);
+                        exit(1);
+                    }
+                }
+                // println!("{:?}", event);
+            }
+            Err(_) => {
+                // println!("Error: {:?}", e);
+            }
+        }
+    }
 }

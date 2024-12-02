@@ -3,6 +3,7 @@ use std::{
     rc::Rc,
 };
 
+use crossbeam::channel::Receiver;
 use header::render_header;
 use output::render_output;
 use ratatui::{
@@ -11,15 +12,14 @@ use ratatui::{
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
         ExecutableCommand,
     },
-    layout::{Alignment, Constraint, Layout, Rect},
+    layout::{Constraint, Layout, Rect},
     prelude::CrosstermBackend,
-    style::{Color, Style, Stylize},
-    widgets::{Block, BorderType, Borders},
     Terminal,
 };
 use stats::render_stats;
+use sysinfo::System;
 
-use crate::process_manager::ProcessManager;
+use crate::process_manager::ProcessExecution;
 
 mod header;
 mod output;
@@ -31,7 +31,7 @@ fn make_panels_rect(area: Rect) -> Rc<[Rect]> {
         .constraints(
             [
                 Constraint::Length(5),
-                Constraint::Length(8),
+                Constraint::Length(5),
                 Constraint::Min(0),
             ]
             .as_ref(),
@@ -40,7 +40,7 @@ fn make_panels_rect(area: Rect) -> Rc<[Rect]> {
     chunks
 }
 
-pub fn init(pm: &mut ProcessManager) -> Result<()> {
+pub fn init(rx_pm: Receiver<ProcessExecution>) -> Result<()> {
     stdout().execute(EnterAlternateScreen)?;
     enable_raw_mode()?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
@@ -49,17 +49,35 @@ pub fn init(pm: &mut ProcessManager) -> Result<()> {
     // State -> Move to eventual state module
     // let mut cursor = Position::new(1, 1);
 
+    let mut currrent_execution: Option<ProcessExecution> = None;
+    let mut system = System::new_all();
+    let current_pid = sysinfo::get_current_pid().unwrap();
+    let parrent_pid = system.process(current_pid).unwrap().parent().unwrap();
+
     loop {
-        // Rendering using state -> Move to eventual ui module
+        match rx_pm.try_recv() {
+            Ok(execution) => {
+                if let Some(mut exe) = currrent_execution {
+                    exe.child.kill().unwrap()
+                }
+                currrent_execution = Some(execution);
+            }
+            Err(_) => {}
+        }
         terminal.draw(|frame| {
-            // frame.set_cursor_position(cursor);
             let areas = make_panels_rect(frame.area());
             let [header_area, stats_area, output_area] = areas.as_ref() else {
                 todo!()
             };
             render_header(frame, header_area);
-            render_stats(frame, stats_area);
-            render_output(frame, output_area, pm);
+            render_stats(
+                frame,
+                stats_area,
+                &mut system,
+                &mut currrent_execution,
+                &parrent_pid,
+            );
+            render_output(frame, output_area, &mut currrent_execution);
         })?;
 
         // Interaction to modify state -> Move to eventual ux module
@@ -75,5 +93,11 @@ pub fn init(pm: &mut ProcessManager) -> Result<()> {
 
     stdout().execute(LeaveAlternateScreen)?;
     disable_raw_mode()?;
+    match currrent_execution {
+        Some(mut exe) => {
+            exe.child.kill().unwrap();
+        }
+        None => {}
+    }
     Ok(())
 }

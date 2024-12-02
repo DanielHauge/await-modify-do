@@ -13,8 +13,6 @@ const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const WATCHED_DIR_LABEL: &str = " Watched Directory:";
 
-const LABELS: [&str; 1] = [WATCHED_DIR_LABEL];
-
 pub fn render_header(f: &mut Frame, area: &Rect) {
     let header_block = Block::default()
         .borders(Borders::ALL)

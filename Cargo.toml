@@ -10,3 +10,4 @@ notify = "7.0.0"
 ratatui = { version = "0.28.0", features = ["all-widgets"]}
 tempfile = "3.14.0"
 which = "7.0.0"
+sysinfo = "0.32.1"
