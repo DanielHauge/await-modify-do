@@ -1,7 +1,12 @@
 [package]
-name = "await-modify-do"
+name = "amdo"
 version = "0.1.0"
 edition = "2021"
+authors = ["Daniel <animcuil@gmail.com>"]
+description = "await-modify-do is a TUI application that runs an arbitrary command on save in working directory."
+license = "MIT"
+repository = "https://github.com/DanielHauge/await-modify-do"
+readme = "README.md"
 
 [dependencies]
 crossbeam = "0.8.0"
