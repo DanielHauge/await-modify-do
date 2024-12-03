@@ -87,28 +87,26 @@ pub fn render_output(f: &mut Frame, area: &Rect, execution: &mut Option<ProcessE
                     break;
                 }
             }
-            let last_10 = exe.stored_outputs.iter().take(inner_area.height as usize);
+            let last_10 = exe
+                .stored_outputs
+                .iter()
+                .rev()
+                .take(inner_area.height as usize)
+                .rev();
             let mut lines = Vec::new();
             for pline in last_10 {
                 let rline = match pline {
                     PLine::Stdout(output) => ratatui::text::Line::from(output.as_str()),
-                    PLine::Stderr(output) => ratatui::text::Line::from(output.as_str().red()),
+                    PLine::Stderr(output) => ratatui::text::Line::from(output.as_str().light_red()),
                 };
                 lines.push(rline);
             }
             let paragraph = Paragraph::new(lines);
             f.render_widget(paragraph, inner_area);
-            // let output_str = output_str
-            //     .lines()
-            //     .rev()
-            //     .take(10)
-            //     .collect::<Vec<&str>>()
-            //     .join("\n");
-            // let text = Text::from(output_str);
-            // let paragraph = Paragraph::new(text);
-            // f.render_widget(paragraph, inner_area);
-            ()
         }
-        None => todo!(),
+        None => {
+            let paragraph = Paragraph::new(vec![ratatui::text::Line::from("No command running")]);
+            f.render_widget(paragraph, inner_area);
+        }
     }
 }

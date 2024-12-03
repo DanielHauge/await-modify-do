@@ -21,8 +21,6 @@ pub struct ProcessExecution {
     pub child: Child,
 }
 
-pub const ENVVAR_BACKTRACE: &str = "AWAIT_MODIFY_DO_BACKTRACE";
-
 impl ProcessExecution {
     pub fn start_new(commandline: String) -> Result<ProcessExecution, Error> {
         let command_split = commandline.split_whitespace().collect::<Vec<&str>>();
@@ -33,10 +31,8 @@ impl ProcessExecution {
         let args = command_split[1..].to_vec();
         let mut child = Command::new(&command.trim().to_string())
             .args(args)
-            .env(ENVVAR_BACKTRACE, "1")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            // .stdin(Stdioinheriterit)
             .spawn()?;
 
         let (tx_output, rx_output) = crossbeam::channel::unbounded();
@@ -52,10 +48,7 @@ impl ProcessExecution {
                     }
                     // Write to the temp file
                     let line_str = line.clone();
-                    match tx_output.send(PLine::Stdout(line_str)) {
-                        Ok(_) => {}
-                        Err(x) => panic!("Error: {:?}", x.0),
-                    }
+                    let _ = tx_output.try_send(PLine::Stdout(line_str));
                     line.clear();
                 }
             });
@@ -69,12 +62,8 @@ impl ProcessExecution {
                     if bytes_read == 0 {
                         break; // EOF reached
                     }
-                    // Write to the temp file
                     let line_str = line.clone();
-                    match tx_err.send(PLine::Stderr(line_str)) {
-                        Ok(_) => {}
-                        Err(x) => panic!("Error: {:?}", x.0),
-                    }
+                    let _ = tx_err.try_send(PLine::Stderr(line_str));
                     line.clear();
                 }
             });

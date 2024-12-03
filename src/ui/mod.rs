@@ -46,19 +46,20 @@ pub fn init(rx_pm: Receiver<ProcessExecution>) -> Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
     terminal.clear()?;
 
-    // State -> Move to eventual state module
-    // let mut cursor = Position::new(1, 1);
-
     let mut currrent_execution: Option<ProcessExecution> = None;
     let mut system = System::new_all();
-    let current_pid = sysinfo::get_current_pid().unwrap();
-    let parrent_pid = system.process(current_pid).unwrap().parent().unwrap();
+    let current_pid = sysinfo::get_current_pid().expect("Could not get current pid");
+    let parrent_pid = system
+        .process(current_pid)
+        .expect("Could not find information for current pid")
+        .parent()
+        .expect("Current program doesn't have a parent process, which it is designed to have using the shell");
 
     loop {
         match rx_pm.try_recv() {
             Ok(execution) => {
                 if let Some(mut exe) = currrent_execution {
-                    exe.child.kill().unwrap()
+                    exe.child.kill().expect("Could not kill the process");
                 }
                 currrent_execution = Some(execution);
             }
@@ -67,7 +68,7 @@ pub fn init(rx_pm: Receiver<ProcessExecution>) -> Result<()> {
         terminal.draw(|frame| {
             let areas = make_panels_rect(frame.area());
             let [header_area, stats_area, output_area] = areas.as_ref() else {
-                todo!()
+                panic!("Could not get the areas for the panels");
             };
             render_header(frame, header_area);
             render_stats(
@@ -95,7 +96,7 @@ pub fn init(rx_pm: Receiver<ProcessExecution>) -> Result<()> {
     disable_raw_mode()?;
     match currrent_execution {
         Some(mut exe) => {
-            exe.child.kill().unwrap();
+            exe.child.kill().expect("Could not kill the process");
         }
         None => {}
     }
