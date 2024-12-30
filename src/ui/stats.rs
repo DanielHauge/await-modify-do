@@ -24,7 +24,7 @@ pub fn render_stats(
         .border_type(ratatui::widgets::BorderType::Rounded)
         .title("Stats")
         .title_alignment(Alignment::Center)
-        .bg(Color::Rgb(30, 34, 42))
+        // .bg(Color::Rgb(30, 34, 42))
         .title_style(Style::default().fg(Color::Yellow).bold());
     f.render_widget(header_block, *area);
 

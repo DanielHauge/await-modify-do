@@ -56,7 +56,7 @@ pub fn render_output(f: &mut Frame, area: &Rect, execution: &mut Option<ProcessE
         .border_type(ratatui::widgets::BorderType::Double)
         .title(header)
         .title_alignment(Alignment::Center)
-        .bg(Color::Rgb(30, 34, 42))
+        // .bg(Color::Rgb(30, 34, 42))
         .title_style(Style::default().fg(Color::Yellow).bold());
     f.render_widget(header_block, *area);
 
