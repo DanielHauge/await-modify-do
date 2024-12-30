@@ -84,9 +84,12 @@ mod tests {
 
     #[test]
     fn test_process_output() {
-        let mut p = ProcessExecution::start_new("ls *Cargo*".to_string()).unwrap();
+        let mut p = ProcessExecution::start_new("ls".to_string()).unwrap();
+        let output = match p.rx_output.recv() {
+            Ok(o) => o,
+            Err(e) => panic!("Error: {:?}", e),
+        };
         p.child.wait().unwrap();
-        let output = p.rx_output.recv().unwrap();
         if let PLine::Stdout(output) = output {
             assert_eq!(output, "Cargo.lock\n");
         } else {
