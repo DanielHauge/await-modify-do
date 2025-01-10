@@ -40,7 +40,7 @@ pub fn render_header(f: &mut Frame, area: &Rect) {
 
 fn render_args() -> Result<Vec<Span<'static>>, ()> {
     let mut spans = vec![];
-    match std::env::args().skip(1).next() {
+    match std::env::args().nth(1) {
         Some(p) => match which::which(&p) {
             Ok(_) => spans.push(Span::styled(p, Style::default().fg(Color::Green))),
             Err(_) => {
@@ -112,8 +112,8 @@ fn render_command() -> Line<'static> {
             spans.push(Span::styled("No command", Style::default().fg(Color::Red)));
         }
     }
-    let line = Line::from(spans);
-    line
+    
+    Line::from(spans)
 }
 
 fn render_mode() -> Line<'static> {

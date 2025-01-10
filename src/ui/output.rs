@@ -1,4 +1,3 @@
-use std::{process::exit, time::Instant};
 
 use ratatui::{
     layout::{Alignment, Margin, Rect},
@@ -8,7 +7,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::process_manager::{PLine, ProcessExecution};
+use crate::process_manager::ProcessExecution;
 
 // Animated running string based on time
 // Has to update every 100 miliseconds
@@ -76,7 +75,7 @@ pub fn render_output(f: &mut Frame, area: &Rect, execution: &mut Option<ProcessE
             let mut last_10: Vec<String> = out
                 .split(|&x| x == b'\n')
                 .rev()
-                .filter(|x| x.len() > 0)
+                .filter(|x| !x.is_empty())
                 .take(inner_area.height as usize)
                 .map(|x| String::from_utf8_lossy(x))
                 .map(|x| x.to_string())

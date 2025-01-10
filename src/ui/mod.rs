@@ -56,14 +56,11 @@ pub fn init(rx_pm: Receiver<ProcessExecution>) -> Result<()> {
         .expect("Current program doesn't have a parent process, which it is designed to have using the shell");
 
     loop {
-        match rx_pm.try_recv() {
-            Ok(execution) => {
-                if let Some(mut exe) = currrent_execution {
-                    exe.child.kill().expect("Could not kill the process");
-                }
-                currrent_execution = Some(execution);
+        if let Ok(execution) = rx_pm.try_recv() {
+            if let Some(mut exe) = currrent_execution {
+                exe.child.kill().expect("Could not kill the process");
             }
-            Err(_) => {}
+            currrent_execution = Some(execution);
         }
         terminal.draw(|frame| {
             let areas = make_panels_rect(frame.area());
@@ -84,21 +81,15 @@ pub fn init(rx_pm: Receiver<ProcessExecution>) -> Result<()> {
         // Interaction to modify state -> Move to eventual ux module
         if event::poll(std::time::Duration::from_millis(16))? {
             if let event::Event::Key(key) = event::read()? {
-                match (key.kind, key.code) {
-                    (KeyEventKind::Press, KeyCode::Char('q')) => break,
-                    _ => {}
-                }
+                if let (KeyEventKind::Press, KeyCode::Char('q')) = (key.kind, key.code) { break }
             }
         }
     }
 
     stdout().execute(LeaveAlternateScreen)?;
     disable_raw_mode()?;
-    match currrent_execution {
-        Some(mut exe) => {
-            exe.child.kill().expect("Could not kill the process");
-        }
-        None => {}
+    if let Some(mut exe) = currrent_execution {
+        exe.child.kill().expect("Could not kill the process");
     }
     Ok(())
 }

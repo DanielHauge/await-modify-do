@@ -1,20 +1,9 @@
-use core::panic;
 use std::{
-    collections::VecDeque,
-    io::{self, BufRead, BufReader, Error, ErrorKind, Read},
+    io::{BufReader, Error, ErrorKind, Read},
     process::{Child, Command, Stdio},
     sync::{Arc, Mutex},
     thread,
 };
-
-use crossbeam::channel::Receiver;
-use ratatui::crossterm;
-
-#[derive(Debug, PartialEq)]
-pub enum PLine {
-    Stdout(String),
-    Stderr(String),
-}
 
 pub struct ProcessExecution {
     pub output: Arc<Mutex<Vec<u8>>>,
@@ -24,7 +13,7 @@ pub struct ProcessExecution {
 impl ProcessExecution {
     pub fn start_new(launcher: &str, commandline: String) -> Result<ProcessExecution, Error> {
         let command_split = commandline.split_whitespace().collect::<Vec<&str>>();
-        if command_split.len() == 0 {
+        if command_split.is_empty() {
             return Err(Error::new(ErrorKind::Other, "No command provided"));
         }
 
