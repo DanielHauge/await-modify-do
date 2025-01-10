@@ -15,7 +15,7 @@ impl ModificationAwaiter {
         let mut watcher = notify::recommended_watcher(move |res| match res {
             Ok(e) => {
                 if last_trigger.elapsed().as_millis() > 3001 {
-                    if let Ok(_) = tx.try_send(e) {}
+                    tx.try_send(e).is_ok();
                     last_trigger = std::time::Instant::now();
                 }
             }
