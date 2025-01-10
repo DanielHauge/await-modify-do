@@ -1,12 +1,14 @@
 use core::panic;
 use std::{
     collections::VecDeque,
-    io::{BufRead, BufReader, Error, ErrorKind},
+    io::{self, BufRead, BufReader, Error, ErrorKind, Read},
     process::{Child, Command, Stdio},
+    sync::{Arc, Mutex},
     thread,
 };
 
 use crossbeam::channel::Receiver;
+use ratatui::crossterm;
 
 #[derive(Debug, PartialEq)]
 pub enum PLine {
@@ -15,66 +17,59 @@ pub enum PLine {
 }
 
 pub struct ProcessExecution {
-    pub rx_output: Receiver<PLine>,
-    pub rx_err: Receiver<PLine>,
-    pub stored_outputs: VecDeque<PLine>,
+    pub output: Arc<Mutex<Vec<u8>>>,
     pub child: Child,
 }
 
 impl ProcessExecution {
-    pub fn start_new(commandline: String) -> Result<ProcessExecution, Error> {
+    pub fn start_new(launcher: &str, commandline: String) -> Result<ProcessExecution, Error> {
         let command_split = commandline.split_whitespace().collect::<Vec<&str>>();
         if command_split.len() == 0 {
             return Err(Error::new(ErrorKind::Other, "No command provided"));
         }
-        let command = command_split[0].to_string();
-        let args = command_split[1..].to_vec();
-        let mut child = Command::new(&command.trim().to_string())
-            .args(args)
+
+        let mut child = Command::new(launcher)
+            .arg("-c")
+            .arg(commandline)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()?;
 
-        let (tx_output, rx_output) = crossbeam::channel::unbounded();
-        let (tx_err, rx_err) = crossbeam::channel::unbounded();
+        let output = Arc::new(Mutex::new(Vec::new()));
+        let output_clone = output.clone();
+        let err_clone = output.clone();
 
         if let Some(stdout) = child.stdout.take() {
             let mut reader = BufReader::new(stdout);
-            let mut line = String::new();
+            let mut buffer = [0; 1024];
             thread::spawn(move || {
-                while let Ok(bytes_read) = reader.read_line(&mut line) {
+                while let Ok(bytes_read) = reader.read(&mut buffer) {
                     if bytes_read == 0 {
                         break; // EOF reached
                     }
                     // Write to the temp file
-                    let line_str = line.clone();
-                    let _ = tx_output.try_send(PLine::Stdout(line_str));
-                    line.clear();
+                    let chunk = &buffer[..bytes_read];
+                    output_clone.lock().unwrap().extend_from_slice(chunk);
+                    // unlock the mutex
                 }
             });
         }
 
         if let Some(stderr) = child.stderr.take() {
             let mut reader = BufReader::new(stderr);
-            let mut line = String::new();
+            let mut buffer = [0; 1024];
             thread::spawn(move || {
-                while let Ok(bytes_read) = reader.read_line(&mut line) {
+                while let Ok(bytes_read) = reader.read(&mut buffer) {
                     if bytes_read == 0 {
                         break; // EOF reached
                     }
-                    let line_str = line.clone();
-                    let _ = tx_err.try_send(PLine::Stderr(line_str));
-                    line.clear();
+                    let chunk = &buffer[..bytes_read];
+                    err_clone.lock().unwrap().extend_from_slice(chunk);
                 }
             });
         }
 
-        Ok(ProcessExecution {
-            rx_output,
-            rx_err,
-            stored_outputs: VecDeque::new(),
-            child,
-        })
+        Ok(ProcessExecution { output, child })
     }
 }
 

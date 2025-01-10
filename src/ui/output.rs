@@ -1,6 +1,9 @@
+use std::{process::exit, time::Instant};
+
 use ratatui::{
     layout::{Alignment, Margin, Rect},
     style::{Color, Style, Stylize},
+    text::Text,
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
@@ -64,44 +67,25 @@ pub fn render_output(f: &mut Frame, area: &Rect, execution: &mut Option<ProcessE
         horizontal: 2,
         vertical: 1,
     });
+    // force clear inner_area
 
     match execution {
         Some(ref mut exe) => {
-            let mut max_lines_output = 100;
-            loop {
-                if max_lines_output == 0 {
-                    break;
-                }
-                let mut had_output = false;
-                if let Ok(output) = exe.rx_err.try_recv() {
-                    exe.stored_outputs.push_back(output);
-                    max_lines_output -= 1;
-                    had_output = true;
-                }
-                if let Ok(output) = exe.rx_output.try_recv() {
-                    exe.stored_outputs.push_back(output);
-                    max_lines_output -= 1;
-                    had_output = true;
-                };
-                if !had_output {
-                    break;
-                }
-            }
-            let last_10 = exe
-                .stored_outputs
-                .iter()
+            let out = exe.output.lock().unwrap();
+            // Take bytes until 10 occurences of newline
+            let mut last_10: Vec<String> = out
+                .split(|&x| x == b'\n')
                 .rev()
+                .filter(|x| x.len() > 0)
                 .take(inner_area.height as usize)
-                .rev();
-            let mut lines = Vec::new();
-            for pline in last_10 {
-                let rline = match pline {
-                    PLine::Stdout(output) => ratatui::text::Line::from(output.as_str()),
-                    PLine::Stderr(output) => ratatui::text::Line::from(output.as_str().light_red()),
-                };
-                lines.push(rline);
-            }
-            let paragraph = Paragraph::new(lines);
+                .map(|x| String::from_utf8_lossy(x))
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>();
+            last_10.reverse();
+
+            // eprintln!("Last 10: {:?}", last_10);
+
+            let paragraph = Paragraph::new(Text::from_iter(last_10));
             f.render_widget(paragraph, inner_area);
         }
         None => {

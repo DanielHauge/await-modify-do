@@ -11,7 +11,8 @@ fn main() {
     let awaiter = ModificationAwaiter::new(p.as_path());
     let command = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
     let (tx, rx) = crossbeam::channel::unbounded();
-    match ProcessExecution::start_new(command.clone()) {
+    let launcher = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+    match ProcessExecution::start_new(&launcher, command.clone()) {
         Ok(process_exe) => {
             tx.send(process_exe)
                 .expect("Could not send process execution start to unbounded channel");
@@ -34,7 +35,7 @@ fn main() {
     loop {
         let event = awaiter.await_modify();
         match event {
-            Ok(_) => match ProcessExecution::start_new(command.clone()) {
+            Ok(_) => match ProcessExecution::start_new(&launcher, command.clone()) {
                 Ok(process_exe) => {
                     tx.send(process_exe)
                         .expect("Could not send process execution start to unbounded channel");
