@@ -3,7 +3,7 @@ use std::{
     rc::Rc,
 };
 
-use crossbeam::channel::Receiver;
+use crossbeam::channel::{Receiver, Sender};
 use header::render_header;
 use output::render_output;
 use ratatui::{
@@ -40,7 +40,7 @@ fn make_panels_rect(area: Rect) -> Rc<[Rect]> {
     chunks
 }
 
-pub fn init(rx_pm: Receiver<ProcessExecution>) -> Result<()> {
+pub fn init(rx_pm: Receiver<ProcessExecution>, manual_trigger_tx: Sender<()>) -> Result<()> {
     stdout().execute(EnterAlternateScreen)?;
     enable_raw_mode()?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
@@ -81,7 +81,36 @@ pub fn init(rx_pm: Receiver<ProcessExecution>) -> Result<()> {
         // Interaction to modify state -> Move to eventual ux module
         if event::poll(std::time::Duration::from_millis(16))? {
             if let event::Event::Key(key) = event::read()? {
-                if let (KeyEventKind::Press, KeyCode::Char('q')) = (key.kind, key.code) { break }
+                if let (KeyEventKind::Press, KeyCode::Char('q')) = (key.kind, key.code) {
+                    if let Some(ref mut exe) = currrent_execution {
+                        exe.child.kill().expect("Could not kill the process");
+                    }
+                    break;
+                }
+                // If escape is pressed, kill the current process
+                if let (KeyEventKind::Press, KeyCode::Esc) = (key.kind, key.code) {
+                    if let Some(ref mut exe) = currrent_execution {
+                        if exe
+                            .child
+                            .try_wait()
+                            .expect("Could not get the status of the process")
+                            .is_none()
+                        {
+                            exe.child.kill().expect("Could not kill the process");
+                            exe.cancelled = true;
+                        }
+                    }
+                }
+                // If space rerun
+                if let (KeyEventKind::Press, KeyCode::Char(' ')) = (key.kind, key.code) {
+                    if let Some(ref mut exe) = currrent_execution {
+                        exe.child.kill().expect("Could not kill the process");
+                        exe.cancelled = true;
+                    }
+                    manual_trigger_tx
+                        .send(())
+                        .expect("Could not send manual trigger");
+                }
             }
         }
     }

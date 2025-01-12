@@ -1,6 +1,6 @@
 [package]
 name = "amdo"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Daniel <animcuil@gmail.com>"]
 description = "await-modify-do is a TUI application that runs an arbitrary command on save in working directory."

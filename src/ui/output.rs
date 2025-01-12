@@ -1,4 +1,3 @@
-
 use ratatui::{
     layout::{Alignment, Margin, Rect},
     style::{Color, Style, Stylize},
@@ -27,28 +26,40 @@ fn running_string() -> String {
 
 pub fn render_output(f: &mut Frame, area: &Rect, execution: &mut Option<ProcessExecution>) {
     let status_color = match execution {
-        Some(exe) => match exe.child.try_wait() {
-            Ok(Some(code)) => match code.code() {
-                Some(0) => Color::Green,
-                Some(_) => Color::LightRed,
-                None => Color::LightYellow,
-            },
-            Ok(None) => Color::LightYellow,
-            Err(_) => Color::Red,
-        },
+        Some(exe) => {
+            if exe.cancelled {
+                Color::Gray
+            } else {
+                match exe.child.try_wait() {
+                    Ok(Some(code)) => match code.code() {
+                        Some(0) => Color::Green,
+                        Some(_) => Color::LightRed,
+                        None => Color::LightYellow,
+                    },
+                    Ok(None) => Color::LightYellow,
+                    Err(_) => Color::Red,
+                }
+            }
+        }
         None => Color::Gray,
     };
 
     let header = match execution {
-        Some(exe) => match exe.child.try_wait() {
-            Ok(Some(code)) => match code.code() {
-                Some(0) => " Success ".to_string(),
-                Some(e) => format!(" Error: {} ", e),
-                None => running_string(),
-            },
-            Ok(None) => running_string(),
-            Err(_) => " Error ".to_string(),
-        },
+        Some(exe) => {
+            if exe.cancelled {
+                " Cancelled ".to_string()
+            } else {
+                match exe.child.try_wait() {
+                    Ok(Some(code)) => match code.code() {
+                        Some(0) => " Success ".to_string(),
+                        Some(e) => format!(" Error: {} ", e),
+                        None => running_string(),
+                    },
+                    Ok(None) => running_string(),
+                    Err(_) => " Error ".to_string(),
+                }
+            }
+        }
         None => "No command".to_string(),
     };
 

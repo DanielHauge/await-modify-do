@@ -9,7 +9,7 @@ use ratatui::{
 };
 use sysinfo::{Gid, Pid, System};
 
-use crate::process_manager::ProcessExecution;
+use crate::process_manager::{ProcessExecution, Trigger};
 
 pub fn render_stats(
     f: &mut Frame,
@@ -18,11 +18,19 @@ pub fn render_stats(
     execution: &mut Option<ProcessExecution>,
     _current_pid: &Pid,
 ) {
+    let trigger_str = match execution {
+        Some(exe) => match &exe.trigger {
+            Trigger::Manual => "Manual".to_string(),
+            Trigger::Start => "Start".to_string(),
+            Trigger::Modify(p) => format!("Modify: {}", p),
+        },
+        None => "None".to_string(),
+    };
     let header_block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::LightGreen))
         .border_type(ratatui::widgets::BorderType::Rounded)
-        .title("Stats")
+        .title(trigger_str)
         .title_alignment(Alignment::Center)
         // .bg(Color::Rgb(30, 34, 42))
         .title_style(Style::default().fg(Color::Yellow).bold());
@@ -107,6 +115,8 @@ pub fn render_stats(
                     .ratio(system.used_swap() as f64 / system.total_swap() as f64),
                 swap_gauge_area,
             );
+
+            // trigger
 
             // let text = Text::raw(lines.join("\n"));
             // f.render_widget(text, inner_area);
